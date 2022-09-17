@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+namespace:名称空间，一般需要保持全局唯一，最好是和mapper的接口一致
+这样就可以映射SQL语句到对应到方法名称和参数返回类型
+mybatis是使用接口动态代理，这里必须为全路径
+-->
+<mapper namespace="site.isscloud.mapper.VideoMapper">
+    <!--定义SQL片段-->
+    <sql id="base_field">
+        id, title, summary, cover_img, price, point
+    </sql>
+    <!--
+    statement sql
+    id: 当前mapper下需要唯一，与mapper中到方法要对应
+    resultType: sql查询结果的封装
+    -->
+    <select id="selectById" resultType="Video">
+        select <include refid="base_field"/> from video where id = #{video_id}
+    </select>
+
+    <select id="selectByTitleAndPoint" resultType="Video">
+        select * from video where title like concat('%',#{title,jdbcType=VARCHAR},'%') and point >=#{point, jdbcType=INTEGER}
+    </select>
+
+    <insert id="add" parameterType="Video" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into `video` (`title`,`summary`,`cover_img`,`price`,`create_time`,`point`)
+        values (#{title,jdbcType=VARCHAR},#{summary,jdbcType=VARCHAR},#{coverImg,jdbcType=VARCHAR},
+                #{price,jdbcType=INTEGER},#{createTime,jdbcType=TIMESTAMP},#{point,jdbcType=INTEGER})
+    </insert>
+    
+    <insert id="addBatch" parameterType="Video" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into `video` (`title`,`summary`,`cover_img`,`price`,`create_time`,`point`)
+        values
+        <foreach collection="list" item="video" index="index" separator=",">
+            (#{video.title,jdbcType=VARCHAR},#{video.summary,jdbcType=VARCHAR},#{video.coverImg,jdbcType=VARCHAR},
+            #{video.price,jdbcType=INTEGER},#{video.createTime,jdbcType=TIMESTAMP},#{video.point,jdbcType=INTEGER})
+        </foreach>
+    </insert>
+
+    <update id="updateSelected" parameterType="Video">
+        update `video`
+        <trim prefix="set" suffixOverrides=",">
+            <if test="title != null">title = #{title,jdbcType=VARCHAR},</if>
+            <if test="summary != null">summury = #{summary,jdbcType=VARCHAR},</if>
+            <if test="coverImg != null">cover_img = #{coverImg,jdbcType=VARCHAR},</if>
+            <if test="price != null">price = #{price,jdbcType=INTEGER},</if>
+            <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>
+            <if test="point != null">point = #{point,jdbcType=INTEGER},</if>
+        </trim>
+        where id = #{id}
+    </update>
+    
+    <delete id="deleteByCreateTimeAndPrice" parameterType="Map">
+        delete from video where create_time > #{createTime} and price <![CDATA[ <= ]]> #{price}
+    </delete>
+
+</mapper>

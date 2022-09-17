@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+namespace:名称空间，一般需要保持全局唯一，最好是和mapper的接口一致
+这样就可以映射SQL语句到对应到方法名称和参数返回类型
+mybatis是使用接口动态代理，这里必须为全路径
+-->
+<mapper namespace="site.isscloud.mapper.UserMapper">
+
+    <!--开启mapper的namespace下的⼆二级缓存-->
+    <!--
+        eviction:代表的是缓存回收策略，常⻅下面两种。
+            (1) LRU,最近最少使用的，⼀一处最长时间不用的对象
+            (2) FIFO,先进先出，按对象进入缓存的顺序来移除他们
+        flushInterval:刷新间隔时间，单位为毫秒，这里配置的是100秒刷新，如果不配置它，当SQL被执行的时候才会去刷新缓存。
+        size:引用数目，代表缓存最多可以存储多少个对象，设置过大会导致内存溢出 readOnly:只读，缓存数据只能读取而不能修改，默认值是false
+    -->
+    <cache eviction="LRU" flushInterval="100000" readOnly="true" size="1024"/>
+    <!--定义SQL片段-->
+    <sql id="base_field">
+        id, name, phone, head_img, create_time
+    </sql>
+
+    <!--定义SQL片段-->
+    <sql id="all_field">
+        id, name, pwd, phone, head_img, create_time
+    </sql>
+
+    <select id="getUserById" resultType="User">
+        select <include refid="base_field"/> from user where id = #{id}
+    </select>
+
+    <resultMap id="UserOrderResultMap" type="User">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result property="name" column="name"/>
+        <result property="pwd" column="pwd"/>
+        <result property="headImg" column="head_img"/>
+        <result property="phone" column="user_phone"/>
+        <result property="createTime" column="create_time"/>
+        <!--
+        property 填写pojo类中集合类属性的名称
+        ofType 集合⾥里里⾯面的pojo对象
+        -->
+        <collection property="videoOrderList" ofType="VideoOrder">
+            <!--配置主键，管理理order的唯⼀一标识-->
+            <id column="o_order_id" property="id"/>
+            <result column="o_user_id" property="userId"/>
+            <result column="o_out_trade_no" property="outTradeNo"/>
+            <result column="o_create_time" property="createTime"/>
+            <result column="o_state" property="state"/>
+            <result column="o_total_fee" property="totalFee"/>
+            <result column="o_video_id" property="videoId"/>
+            <result column="o_video_title" property="videoTitle"/>
+            <result column="o_video_img" property="videoImg"/>
+        </collection>
+    </resultMap>
+
+    <!--一对一管理理查询订单， 订单内部包含⽤用户属性-->
+    <select id="queryUserOrder" resultMap="UserOrderResultMap">
+        select
+            u.id,
+            u.name,
+            u.head_img,
+            u.create_time,
+            u.phone,
+            o.id o_order_id,
+            o.out_trade_no o_out_trade_no,
+            o.user_id o_user_id,
+            o.create_time o_create_time,
+            o.state o_state,
+            o.total_fee o_total_fee,
+            o.video_id o_video_id,
+            o.video_title o_video_title,
+            o.video_img o_video_img
+        from user u left join video_order o on u.id = o.user_id
+    </select>
+
+    <resultMap id="UserOrderResultMapLazy" type="User">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result property="name" column="name"/>
+        <result property="headImg" column="head_img"/>
+        <result property="phone" column="user_phone"/>
+        <result property="createTime" column="create_time"/>
+        <!--
+        property 填写pojo类中集合类属性的名称
+        ofType 集合⾥里里⾯面的pojo对象
+        -->
+        <collection property="videoOrderList" ofType="VideoOrder" column="id" select="queryOrderByUserId"/>
+    </resultMap>
+
+    <select id="queryUserOrderLazy" resultMap="UserOrderResultMapLazy">
+        select <include refid="base_field"/> from user
+    </select>
+    <select id="queryOrderByUserId" resultType="VideoOrder">
+        select * from video_order where user_id = #{id}
+    </select>
+</mapper>
