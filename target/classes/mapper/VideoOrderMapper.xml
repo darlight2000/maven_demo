@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+namespace:名称空间，一般需要保持全局唯一，最好是和mapper的接口一致
+这样就可以映射SQL语句到对应到方法名称和参数返回类型
+mybatis是使用接口动态代理，这里必须为全路径
+-->
+<mapper namespace="site.isscloud.mapper.VideoOrderMapper">
+    <resultMap id="VideoOrderResultMap" type="VideoOrder">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="out_trade_no" property="outTradeNo" jdbcType="VARCHAR"/>
+        <result column="state" property="state" jdbcType="INTEGER"/>
+        <result column="total_fee" property="totalFee" jdbcType="INTEGER"/>
+        <result column="video_id" property="videoId" jdbcType="INTEGER"/>
+        <result column="video_title" property="videoTitle" jdbcType="VARCHAR"/>
+        <result column="video_img" property="videoImg" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <!--
+        association 配置属性一对一
+        property 对应videoOrder里面的user属性名 javaType 这个属性的类型
+        -->
+        <association property="user" javaType="User">
+            <!--
+            注意，联合查询中关联表user表中的字段为避免重复，会都以user_开头，并且user_id字段在order表中已经有了就不在查出来
+             -->
+            <id property="id" column="user_id"/>
+            <result property="name" column="user_name"/>
+            <result property="headImg" column="user_head_img"/>
+            <result property="phone" column="user_phone"/>
+            <result property="createTime" column="user_create_time"/>
+        </association>
+        <association property="video" javaType="Video">
+            <id property="id" column="video_id"/>
+            <result property="title" column="video_title"/>
+            <result property="summary" column="video_summary"/>
+            <result property="coverImg" column="video_cover_img"/>
+            <result property="point" column="video_point"/>
+            <result property="createTime" column="video_create_time"/>
+        </association>
+    </resultMap>
+
+    <!--一对一管理理查询订单， 订单内部包含⽤用户属性-->
+    <select id="queryVideoOrderList" resultMap="VideoOrderResultMap">
+        select
+            o.id id,
+            o.user_id ,
+            o.out_trade_no,
+            o.create_time,
+            o.state,
+            o.total_fee,
+            o.video_id,
+            o.video_title,
+            o.video_img,
+            o.create_time,
+            u.name as user_name,
+            u.head_img as user_head_img,
+            u.create_time as user_create_time,
+            u.phone as user_phone,
+            v.title as video_title,
+            v.summary as video_summary,
+            v.cover_img as video_cover_img,
+            v.price as video_price,
+            v.point as video_point,
+            v.create_time as video_create_time
+        from video_order o left join user u on o.user_id = u.id
+            left join video v on o.video_id = v.id
+    </select>
+
+    <resultMap id="VideoOrderResultMapLazy" type="VideoOrder">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="out_trade_no" property="outTradeNo" jdbcType="VARCHAR"/>
+        <result column="state" property="state" jdbcType="INTEGER"/>
+        <result column="total_fee" property="totalFee" jdbcType="INTEGER"/>
+        <result column="video_id" property="videoId" jdbcType="INTEGER"/>
+        <result column="video_title" property="videoTitle" jdbcType="VARCHAR"/>
+        <result column="video_img" property="videoImg" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <!--property:java类中的属性，javaType是对应的关联的JAVA类，column是关联的user_id，select是对应懒加载的方法-->
+        <association property="user" javaType="User" column="user_id" select="queryUserById"/>
+        <association property="video" javaType="Video" column="video_id" select="queryVideoById"/>
+    </resultMap>
+
+    <select id="queryVideoOrderListLazy" resultMap="VideoOrderResultMapLazy">
+        select * from video_order
+    </select>
+
+    <select id="queryUserById" resultType="User">
+        select * from user where id = #{id}
+    </select>
+
+    <select id="queryVideoById" resultType="Video">
+        select * from video where id = #{id}
+    </select>
+</mapper>
